@@ -46,7 +46,7 @@ input[type="text"] {
   margin-bottom:10px;
 }
 
-/* Moduswahl */
+/* modewahl */
 .mode { margin:10px 0 14px; font-size:0.9rem; }
 .mode label { margin-right:16px; cursor:pointer; }
 .mode input { margin-right:4px; }
@@ -115,9 +115,9 @@ button {
   <p>You know the famous Drum-Drop in this Whitney Houston song. Try to tap exactly when the drum drops! The closer, the higher your score!</p>
 
   <div class="mode">
-    Modus:
+    mode:
     <label><input type="radio" name="mode" value="single" checked> Singleplayer</label>
-    <label><input type="radio" name="mode" value="multi"> 2 Spieler</label>
+    <label><input type="radio" name="mode" value="multi"> 2 Players</label>
   </div>
 
   <label>Spieler 1:</label>
@@ -203,7 +203,7 @@ function updateTurnDisplay(){
   }
 }
 
-// Modus umschalten
+// mode umschalten
 modeRadios.forEach(r => {
   r.addEventListener("change", () => {
     mode = document.querySelector('input[name="mode"]:checked').value;
