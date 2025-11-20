@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>I Will Always Tap You – PWA Edition</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js");
+  }
+</script>
+
+<style>
+body {
+  background:#0f172a;
+  font-family:system-ui,sans-serif;
+  margin:0; padding:20px;
+  display:flex; justify-content:center;
+  color:#e2e8f0;
+}
+
+.game {
+  width:100%; max-width:520px;
+  background:#1e293b;
+  padding:20px;
+  border-radius:16px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.45);
+}
+
+h1 { margin-top:0; color:white; }
+
+label { font-size:0.9rem; }
+
+input[type="text"] {
+  width:100%; padding:10px; margin-top:6px;
+  border-radius:8px; border:none;
+  background:#334155; color:white;
+  margin-bottom:10px;
+}
+
+/* Moduswahl */
+.mode { margin:10px 0 14px; font-size:0.9rem; }
+.mode label { margin-right:16px; cursor:pointer; }
+.mode input { margin-right:4px; }
+
+/* Buttons */
+button {
+  width:100%; padding:14px; margin-top:10px;
+  border:none; border-radius:12px;
+  font-size:1.05rem; font-weight:600;
+  cursor:pointer;
+}
+#start { background:#22c55e; color:black; }
+#stop  { background:#64748b; color:white; }
+#jump  { background:#3b82f6; color:black; }
+
+#tap {
+  margin-top:20px;
+  height:90px;
+  background:#eab308;
+  color:black;
+  font-size:1.2rem;
+  transition:0.2s;
+}
+#tap.hit { background:#22c55e; }
+
+/* Status & Resultate */
+.player-turn {
+  text-align:center;
+  margin-top:6px;
+  font-size:0.95rem;
+  color:#facc15;
+}
+
+.result-box {
+  margin-top:16px;
+  padding:12px;
+  background:#334155;
+  border-radius:12px;
+  text-align:center;
+}
+
+#log {
+  margin-top:18px;
+  background:#0f172a;
+  padding:12px;
+  border-radius:12px;
+  max-height:260px;
+  overflow-y:auto;
+}
+
+.log-entry {
+  background:#1e293b;
+  padding:8px;
+  border-radius:8px;
+  margin-bottom:6px;
+  font-size:0.9rem;
+}
+</style>
+</head>
+
+<body>
+
+<div class="game">
+
+  <h1>I Will Always Tap You</h1>
+  <p>Triff den Drum-Drop! Je genauer, desto mehr Punkte (max. 1000).</p>
+
+  <div class="mode">
+    Modus:
+    <label><input type="radio" name="mode" value="single" checked> Singleplayer</label>
+    <label><input type="radio" name="mode" value="multi"> 2 Spieler</label>
+  </div>
+
+  <label>Spieler 1:</label>
+  <input id="p1" type="text" placeholder="Name von Spieler 1">
+
+  <div id="p2-wrapper" style="display:none;">
+    <label>Spieler 2:</label>
+    <input id="p2" type="text" placeholder="Name von Spieler 2">
+  </div>
+
+  <div class="player-turn" id="turnDisplay"></div>
+
+  <button id="start">Song starten</button>
+  <button id="stop">Stop</button>
+  <button id="jump">Skip to hot part</button>
+
+  <button id="tap" disabled>Tippen beim Drop! (SPACE)</button>
+
+  <div class="result-box">
+    <div id="r1"></div>
+    <div id="r2"></div>
+    <div id="r3"></div>
+  </div>
+
+  <h3>Runden-Ergebnisse:</h3>
+  <div id="log"></div>
+
+</div>
+
+<audio id="song" src="i_will_always_love_you.mp3"></audio>
+
+<script>
+// Fixer Drop-Zeitpunkt
+const DROP_TIME_S = 190.159;
+
+// DOM-Elemente
+const song = document.getElementById("song");
+const startBtn = document.getElementById("start");
+const stopBtn  = document.getElementById("stop");
+const jumpBtn  = document.getElementById("jump");
+const tapBtn   = document.getElementById("tap");
+
+const p1Input  = document.getElementById("p1");
+const p2Input  = document.getElementById("p2");
+const p2Wrap   = document.getElementById("p2-wrapper");
+
+const turnDisplay = document.getElementById("turnDisplay");
+
+const r1 = document.getElementById("r1");
+const r2 = document.getElementById("r2");
+const r3 = document.getElementById("r3");
+
+const log = document.getElementById("log");
+
+const modeRadios = document.querySelectorAll('input[name="mode"]');
+
+let mode = "single";
+let currentPlayer = 1;
+let roundActive = false;
+
+// Format seconds → mm:ss
+function fmt(s){
+  const m=Math.floor(s/60);
+  const sec=Math.floor(s%60).toString().padStart(2,"0");
+  return `${m}:${sec}`;
+}
+
+function getPlayerName(player){
+  if(mode === "single"){
+    return p1Input.value.trim() || "Spieler";
+  } else {
+    return player === 1
+      ? (p1Input.value.trim() || "Spieler 1")
+      : (p2Input.value.trim() || "Spieler 2");
+  }
+}
+
+function updateTurnDisplay(){
+  if(mode === "single"){
+    turnDisplay.textContent = `Singleplayer: ${getPlayerName(1)}`;
+  } else {
+    turnDisplay.textContent = `${getPlayerName(currentPlayer)} ist dran!`;
+  }
+}
+
+// Modus umschalten
+modeRadios.forEach(r => {
+  r.addEventListener("change", () => {
+    mode = document.querySelector('input[name="mode"]:checked').value;
+    p2Wrap.style.display = (mode === "multi" ? "block" : "none");
+    currentPlayer = 1;
+    updateTurnDisplay();
+  });
+});
+
+// Start
+startBtn.onclick = () => {
+  if(mode === "multi"){
+    if(!p1Input.value.trim() || !p2Input.value.trim()){
+      alert("Bitte beide Spielernamen eintragen.");
+      return;
+    }
+  }
+
+  r1.textContent=""; r2.textContent=""; r3.textContent="";
+  tapBtn.disabled = false;
+  tapBtn.classList.remove("hit");
+
+  if(mode === "single") currentPlayer = 1;
+
+  updateTurnDisplay();
+
+  song.currentTime = 0;
+  song.play();
+
+  roundActive = true;
+};
+
+// Stop
+stopBtn.onclick = () => {
+  song.pause();
+  roundActive = false;
+  tapBtn.disabled = true;
+};
+
+// Skip zu 3:00
+jumpBtn.onclick = () => song.currentTime = 180;
+
+// Tap
+function handleTap(){
+  if(!roundActive) return;
+
+  const diffSec = song.currentTime - DROP_TIME_S;
+  const diffMs  = diffSec * 1000;
+  const absMs   = Math.abs(diffMs);
+
+  // Score 1000 → 1 über 0–10s linear
+  let score = 1000 - (absMs / 10000) * 999;
+  if(score < 1) score = 1;
+  score = Math.round(score);
+
+  // Tolerante Kommentare
+  let label="";
+  if(absMs < 80)        label="PERFECT!";
+  else if(absMs < 200)  label="Great!";
+  else if(absMs < 500)  label="Good!";
+  else if(absMs < 1500) label="Okay!";
+  else                  label="Ouch 😅";
+
+  tapBtn.classList.add("hit");
+
+  r1.textContent = label;
+  r2.textContent = (diffMs>=0?"+":"") + diffMs.toFixed(1)+" ms";
+  r3.textContent = `Score: ${score}/1000`;
+
+  // Ergebnis eintragen
+  const name = getPlayerName(currentPlayer);
+  const entry = document.createElement("div");
+  entry.className = "log-entry";
+  entry.innerHTML =
+    `<b>${name}</b>: ${label} – ${(diffMs>=0?"+":"")}${diffMs.toFixed(1)} ms – Score: ${score}/1000`;
+  log.prepend(entry);
+
+  roundActive = false;
+  tapBtn.disabled = true;
+
+  if(mode === "multi"){
+    currentPlayer = currentPlayer===1 ? 2 : 1;
+    updateTurnDisplay();
+  }
+}
+
+tapBtn.onclick = handleTap;
+
+document.addEventListener("keydown", e=>{
+  if(e.code==="Space"){
+    e.preventDefault();
+    handleTap();
+  }
+});
+
+// Ende des Songs
+song.addEventListener("ended", ()=>{
+  roundActive = false;
+  tapBtn.disabled = true;
+});
+
+updateTurnDisplay();
+</script>
+
+</body>
+</html>
