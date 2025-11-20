@@ -1,4 +1,4 @@
-const CACHE_NAME = "tapyou-v1";
+const CACHE_NAME = "WhitneyTap";
 const ASSETS = [
   "index.html",
   "manifest.json",
