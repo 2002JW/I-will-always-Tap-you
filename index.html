@@ -112,7 +112,7 @@ button {
 <div class="game">
 
   <h1>I Will Always Tap You</h1>
-  <p>Triff den Drum-Drop! Je genauer, desto mehr Punkte (max. 1000).</p>
+  <p>You know the famous Drum-Drop in this Whitney Houston song. Try to tap exactly when the drum drops! The closer, the higher your score!</p>
 
   <div class="mode">
     Modus:
@@ -121,20 +121,20 @@ button {
   </div>
 
   <label>Spieler 1:</label>
-  <input id="p1" type="text" placeholder="Name von Spieler 1">
+  <input id="p1" type="text" placeholder="Name of Player 1">
 
   <div id="p2-wrapper" style="display:none;">
     <label>Spieler 2:</label>
-    <input id="p2" type="text" placeholder="Name von Spieler 2">
+    <input id="p2" type="text" placeholder="Name of PLayer 2">
   </div>
 
   <div class="player-turn" id="turnDisplay"></div>
 
-  <button id="start">Song starten</button>
+  <button id="start">Start Song</button>
   <button id="stop">Stop</button>
   <button id="jump">Skip to hot part</button>
 
-  <button id="tap" disabled>Tippen beim Drop! (SPACE)</button>
+  <button id="tap" disabled>Tap at Drop!</button>
 
   <div class="result-box">
     <div id="r1"></div>
@@ -142,7 +142,7 @@ button {
     <div id="r3"></div>
   </div>
 
-  <h3>Runden-Ergebnisse:</h3>
+  <h3>Scoreboard:</h3>
   <div id="log"></div>
 
 </div>
@@ -187,11 +187,11 @@ function fmt(s){
 
 function getPlayerName(player){
   if(mode === "single"){
-    return p1Input.value.trim() || "Spieler";
+    return p1Input.value.trim() || "Player";
   } else {
     return player === 1
-      ? (p1Input.value.trim() || "Spieler 1")
-      : (p2Input.value.trim() || "Spieler 2");
+      ? (p1Input.value.trim() || "Player 1")
+      : (p2Input.value.trim() || "Player 2");
   }
 }
 
@@ -199,7 +199,7 @@ function updateTurnDisplay(){
   if(mode === "single"){
     turnDisplay.textContent = `Singleplayer: ${getPlayerName(1)}`;
   } else {
-    turnDisplay.textContent = `${getPlayerName(currentPlayer)} ist dran!`;
+    turnDisplay.textContent = `${getPlayerName(currentPlayer)}'s turn!`;
   }
 }
 
